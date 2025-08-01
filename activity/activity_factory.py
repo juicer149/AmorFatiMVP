@@ -39,8 +39,13 @@ def load_yaml(path: str) -> dict:
     """
     if not os.path.isfile(path):
         raise FileNotFoundError(f"No file found at path: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    if not path.endswith(".yaml"):
+        raise ValueError(f"Expected a YAML file, but got: {path}")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing YAML file {path}: {e}") from e
 
 
 def load_config(name: str) -> dict:
@@ -61,37 +66,58 @@ def load_config(name: str) -> dict:
 @dataclass
 class ActivityFactory:
     """
-    Factory for constructing Activity or MetaActivity instances.
+    ActivityFactory – constructs (Meta)Activity objects from either YAML or direct input.
 
-    Responsibilities:
-    - Loads and interprets YAML config for the activity.
-    - Transforms input into concrete immutable objects.
-    - Determines whether meta-data exists and wraps appropriately.
+    This factory enables structured creation of semantic-free core events,
+    optionally enriched with context. It supports both production usage (YAML-driven)
+    and test or ad-hoc scenarios (manual input).
 
-    Philosophy:
-    - Input is fully structured; no prompting or validation.
-    - Time is resolved deterministically.
-    - Output is pure data: either Activity or MetaActivity.
+    Fields
+    ------
+    - name     : Name of the activity, e.g., "run"
+    - amount   : Quantity of the activity, e.g., 30
+    - clock    : Optional time string in "HH:MM" format; falls back to current time
+    - meta     : Optional metadata dict (emotion, intensity, etc.)
+    - unit     : Required only if `use_yaml=False`
+    - use_yaml : If True, expects a config file in `./configs/{name}.yaml`
+
+    Example
+    -------
+    # From YAML config (default)
+    ActivityFactory(name="run", amount=20).build()
+
+    # Manual, YAML-free mode
+    ActivityFactory(name="read", amount=15, unit="pages", use_yaml=False).build()
     """
 
     name: str
     amount: int
     clock: Optional[str] = None
     meta: Optional[Dict[str, Any]] = None
+    unit: Optional[str] = None
+    use_yaml: bool = True
 
     def build(self) -> Union[Activity, MetaActivity]:
         """
-        Construct the activity object.
+        Build a core Activity or a context-enriched MetaActivity.
 
         Returns
         -------
-        Activity or MetaActivity
-        """
-        config = load_config(self.name)
+        Activity or MetaActivity depending on whether meta is provided.
 
-        unit = config.get("unit")
-        if not unit:
-            raise ValueError(f"Config for '{self.name}' must define a 'unit'.")
+        Raises
+        ------
+        ValueError if configuration is incomplete or invalid.
+        """
+        if self.use_yaml:
+            config = load_config(self.name)
+            unit = config.get("unit")
+            if not unit:
+                raise ValueError(f"Config for '{self.name}' must define a 'unit'.")
+        else:
+            if not self.unit:
+                raise ValueError("Field 'unit' must be provided if YAML is disabled.")
+            unit = self.unit
 
         dt = self._resolve_time(self.clock)
         unix_time = to_unix_time(dt)
@@ -113,20 +139,20 @@ class ActivityFactory:
 
     def _resolve_time(self, clock: Optional[str]) -> datetime:
         """
-        Convert input clock string to a datetime object.
+        Convert a clock string to a timezone-aware datetime.
 
-        If no clock is provided, use current system time.
+        If no clock is given, current system time is used.
 
         Parameters
         ----------
-        clock : Optional[str]
-            Clock time in format "HH:MM"
+        clock : str or None
+            Format: "HH:MM"
 
         Returns
         -------
         datetime
+            Local datetime representing the intended time.
         """
         if clock:
             return parse_clock_time(clock)
         return datetime.now().astimezone()
-
