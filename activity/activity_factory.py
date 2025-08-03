@@ -59,7 +59,12 @@ def load_config(name: str) -> dict:
     dict
         The raw YAML config.
     """
-    path = os.path.join("./configs", f"{name}.yaml")
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+
+    if not name:
+        raise ValueError("Activity name must be provided.")
+
+    path = os.path.join(BASE_DIR, "configs", f"{name}.yaml")
     return load_yaml(path)
 
 
