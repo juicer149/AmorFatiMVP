@@ -8,6 +8,7 @@ from typing import Any, Dict
 # Energeia
 @dataclass(frozen=True, slots=True)
 class Activity:
+
     """
     Activity — a minimal, immutable record of a real-world event.
 
@@ -20,7 +21,31 @@ class Activity:
     This is the "black box" model: an objective log suitable for alien observers,
     a kernel trace, or any system that captures facts without valuing them.
 
-    Examples: {"run", "time", 30, 1721155200} is as true in Paris as on Mars.
+    Example:
+        >>> from activity import Activity
+        >>> a = Activity(name="run", unit="time", amount=30, unix_time=1721155200)
+        >>> str(a)
+        "Activity('run', 30 time) @ 1721155200"
+        >>> a.name
+        'run'
+        >>> a.amount
+        30
+
+        Validation:
+        >>> Activity(name="", unit="time", amount=30, unix_time=1721155200)
+        Traceback (most recent call last):
+        ...
+        ValueError: Activity.name must be a non-empty string
+
+        >>> Activity(name="run", unit="", amount=30, unix_time=1721155200)
+        Traceback (most recent call last):
+        ...
+        ValueError: Activity.unit must be a non-empty string
+
+        >>> Activity(name="run", unit="time", amount=-5, unix_time=1721155200)
+        Traceback (most recent call last):
+        ...
+        ValueError: Activity.amount must be a non-negative integer
     """
 
     name: str
@@ -42,7 +67,8 @@ class Activity:
         if not isinstance(self.unix_time, (int, float)):
             raise ValueError("Activity.unix_time must be a number")
 
-    # --------------------- String Representation ---------------------
+
+    # ------------------------ String Representation --------------------------
 
     def __str__(self) -> str:
         return f"Activity('{self.name}', {self.amount} {self.unit}) @ {int(self.unix_time)}"
@@ -71,6 +97,42 @@ class MetaActivity:
     While an alien system could parse an Activity, it would require a mind
     to interpret a MetaActivity. This distinction keeps the core log unambiguous,
     while allowing for rich, extensible meaning layers.
+
+    Examples: {"run", "time", 30, 1721155200} + {"intensity": 9.5, "location": "park"}
+    The extra metadata provides context that can be used in calculations to determine
+    the impact or significance of the activity, such as its intensity or location, 
+    or how the specific human value this activity and how it fits into their life.
+    Attributes like "intensity" might inpact how a score is calculated, depending on the
+    context of the activity, such as a "run" being more significant if done at high intensity.
+
+
+    Example:
+        >>> from activity import Activity, MetaActivity
+        >>> act = Activity(name="run", unit="time", amount=30, unix_time=1721155200)
+        >>> meta = MetaActivity(base=act, meta={"location": "park", "intensity": 8.5})
+        >>> str(meta)
+        "Activity('run', 30 time) @ 1721155200 +meta"
+        >>> meta.meta["location"]
+        'park'
+
+        Invalid meta type:
+        >>> MetaActivity(base=act, meta={"mood": set([1, 2])})
+        Traceback (most recent call last):
+        ...
+        TypeError: meta['mood'] has unsupported type: set
+
+        Invalid base:
+        >>> MetaActivity(base="not an activity", meta={})
+        Traceback (most recent call last):
+        ...
+        TypeError: MetaActivity.base must be an instance of Activity
+
+        Extension:
+        >>> meta2 = meta.with_meta(weather="sunny")
+        >>> meta2.meta["weather"]
+        'sunny'
+        >>> meta.meta.get("weather") is None
+        True
     """
 
     base: Activity
@@ -96,6 +158,7 @@ class MetaActivity:
 
     def __repr__(self) -> str:
         return f"MetaActivity(base={self.base!r}, meta={self.meta})"
+
 
     # ------------------------ Factory Methods --------------------------
 

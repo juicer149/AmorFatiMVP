@@ -93,6 +93,18 @@ class ActivityFactory:
 
     # Manual, YAML-free mode
     ActivityFactory(name="read", amount=15, unit="pages", use_yaml=False).build()
+
+    Examples:
+        >>> from activity.activity_factory import ActivityFactory
+        >>> af = ActivityFactory(name="read", amount=10, unit="pages", use_yaml=False)
+        >>> a = af.build()
+        >>> type(a).__name__
+        'Activity'
+
+        >>> af = ActivityFactory(name="meditate", amount=20, unit="minutes", meta={"mood": "calm"}, use_yaml=False)
+        >>> m = af.build()
+        >>> type(m).__name__
+        'MetaActivity'
     """
 
     name: str
@@ -157,6 +169,11 @@ class ActivityFactory:
         -------
         datetime
             Local datetime representing the intended time.
+
+        
+        Examples:
+            >>> ActivityFactory(name="test", amount=1, unit="x", use_yaml=False)._resolve_time("12:30").hour
+            12
         """
         if clock:
             return parse_clock_time(clock)
