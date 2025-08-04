@@ -1,4 +1,3 @@
-````markdown
 # `activity/` – The Foundation of Event Logging
 
 This package forms the semantic core of the Amor Fati system. Here, the most fundamental building blocks of a person's lived log are defined, created, and manipulated.
@@ -17,13 +16,15 @@ Or in Aristotelian terms:
 
 ```text
 activity/
-├── activity.py          # Defines Activity and MetaActivity
-├── activity_factory.py  # Builds instances from YAML configuration
-├── activity_tools.py    # Helpers for validation, transformation, etc.
+├── activity.py           # Defines Activity and MetaActivity
+├── activity_factory.py   # Builds instances from YAML configuration
+├── activity_tools.py     # Helpers for validation, transformation, etc.
+├── jsonl_logger.py       # Flat JSONL logging (event-based)
+├── test_attr_log.py      # CLI interface for testing attribute-logger
 ├── configs/
-│   ├── meditate.yaml    # Example activity: meditation
-│   └── run.yaml         # Example activity: running
-````
+│   ├── meditate.yaml     # Example activity: meditation
+│   └── run.yaml          # Example activity: running
+```
 
 ---
 
@@ -55,6 +56,33 @@ meta:
 ```
 
 Weights are used *only* if logic is defined elsewhere (`economy`). Otherwise, metadata is recorded without interpretation.
+
+---
+
+## `jsonl_logger.py`
+
+Provides two logging modes:
+
+1. **Event-based (default)** – each log entry is a full JSON object:
+   ```json
+   {
+     "name": "run",
+     "unit": "time",
+     "amount": 30,
+     "unix_time": 1754229600.0,
+     "meta": { "weather": "sunny", ... }
+   }
+   ```
+
+2. **Attributive (experimental)** – each attribute is logged on its own line:
+   ```json
+   { "id": 1754229600.0, "key": "name", "value": "run" }
+   { "id": 1754229600.0, "key": "unit", "value": "time" }
+   ```
+
+This enables log parsing as a *linked list* of atomic facts, decoupling structure from semantics. Ideal for machine learning or time-series pipelines.
+
+Use `test_attr_log.py` to test this logic manually.
 
 ---
 
@@ -103,6 +131,4 @@ meta = build_meta_activity("run", amount=30, unix_time=time.time())
 ## Forward
 
 This is the layer upon which future languages may be built – NLP, statistics, self-reflection. But here, in `activity/`, reality speaks first.
-
-```
 
