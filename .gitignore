@@ -2,8 +2,11 @@
 __pycache__/
 *.py[cod]
 
-# Logs
-logs/
+#Attributiv loggning
+logs_attr/
+
+# Tillfälliga testscript
+activity/test_attr_log.py
 
 # OS-filer
 .DS_Store
