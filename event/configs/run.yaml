@@ -1,0 +1,8 @@
+unit: time
+value: 1.0   
+calc: linear # (valfritt, men rekommenderas)
+
+meta:
+  intensity:
+    weight: 0.5
+    calc: linear

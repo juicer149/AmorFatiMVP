@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Union
-from .activity import Activity, MetaActivity
+from .event import Event, EventMeta
 
 # Log directory using date-based rotation (one file per day).
 LOG_DIR = Path("logs_attr")
@@ -20,11 +20,11 @@ def _log_path_for_today() -> Path:
     today_str = datetime.now().strftime("%Y-%m-%d")
     return LOG_DIR / f"{today_str}.jsonl"
 
-def _as_pairs(event: Union[Activity, MetaActivity], event_id: float) -> list[dict]:
+def _as_pairs(event: Union[Event, EventMeta], event_id: float) -> list[dict]:
     """
     Serialize an event as a list of {id, key, value} records.
 
-    Each attribute from the core activity and any optional metadata
+    Each attribute from the core event and any optional metadata
     is split into its own atomic record, linked by a shared id (usually unix_time).
 
     Rationale:
@@ -34,18 +34,19 @@ def _as_pairs(event: Union[Activity, MetaActivity], event_id: float) -> list[dic
     """
     items = []
 
-    if isinstance(event, MetaActivity):
-        core = event.base
+    if isinstance(event, EventMeta):
+        core = event.event  # NOTE: changed from .base to .event
         meta = event.meta
     else:
         core = event
         meta = {}
 
-    # Core attributes from the base activity
-    # These could be given by a registry pattern in the future?
+    # Core attributes from the event
     for key in ["name", "unit", "amount", "unix_time"]:
-        value = getattr(core, key)
-        items.append({"id": event_id, "key": key, "value": value})
+        # If attribute missing (e.g. unit in plain Event), fallback to getattr with default None
+        value = getattr(core, key, None)
+        if value is not None:
+            items.append({"id": event_id, "key": key, "value": value})
 
     # Optional metadata attributes
     for k, v in meta.items():
@@ -53,9 +54,10 @@ def _as_pairs(event: Union[Activity, MetaActivity], event_id: float) -> list[dic
 
     return items
 
-def log_event(event: Union[Activity, MetaActivity]) -> None:
+
+def log_event(event: Union[Event, EventMeta]) -> None:
     """
-    Log an activity as a set of key-value records in JSONL format.
+    Log an event as a set of key-value records in JSONL format.
 
     Each line represents a single attribute:
     {"id": 1754229600.0, "key": "name", "value": "run"}
@@ -63,10 +65,15 @@ def log_event(event: Union[Activity, MetaActivity]) -> None:
     This structure makes it easier to analyze events as linked records,
     independent of future changes in the data model.
     """
-    event_id = getattr(event, "unix_time", datetime.now().timestamp())
+    if isinstance(event, Event):
+        event_id = event.unix_time
+    elif isinstance(event, EventMeta):
+        event_id = event.event.unix_time
+    else:
+        event_id = datetime.now().timestamp()
+
     path = _log_path_for_today()
     with path.open("a", encoding="utf-8") as f:
         for row in _as_pairs(event, event_id):
             json.dump(row, f)
             f.write("\n")
-

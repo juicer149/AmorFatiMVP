@@ -1,0 +1,9 @@
+unit: pages
+value: 2.0
+calc: linear
+
+meta:
+  focus:
+    prompt: "Hur fokuserad var du?"
+    weight: 1.1
+    mode: scale
