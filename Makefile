@@ -1,9 +1,9 @@
 PYTHON := python3
 
-.PHONY: test doctest check run-demo
+.PHONY: demo doctest check run-demo
 
-test:
-	$(PYTHON) -m event.test_attr_log
+demo:
+	$(PYTHON) -m event.demo
 
 doctest:
 	$(PYTHON) -m doctest -v event/event.py event/event_tools.py

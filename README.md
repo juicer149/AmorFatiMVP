@@ -1,12 +1,13 @@
-# `event/` — The Foundation of Event Logging
+# AmorFatiMVP
 
-The `event` package is the semantic core of the third Amor Fati experiment.
+The third project in the Amor Fati project line.
 
-It represents a shift from activity-specific tracking toward a more general
-event model: first record what happened, then let higher layers interpret it.
+This project represents a shift from activity-specific tracking toward a more
+general event model: first record what happened, then let higher layers
+interpret it.
 
-The package was previously named `activity/` and was renamed to `event/` during
-the final refactor.
+The core package was previously named `activity/` and was renamed to `event/`
+during the final refactor.
 
 ## Core model
 
@@ -30,7 +31,7 @@ Both are immutable dataclasses using `frozen=True` and `slots=True`.
 ## Event factory
 
 `EventFactory` builds an `EventMeta` from a small amount of user input and a
-YAML configuration stored in `configs/`.
+YAML configuration stored in `event/configs/`.
 
 Example:
 
@@ -45,8 +46,8 @@ base value, calculation mode and optional metadata specification.
 
 ## Attributive JSONL logging
 
-`jsonl_logger.py` stores an event as atomic key/value records linked by the
-event's Unix timestamp.
+`event/jsonl_logger.py` stores an event as atomic key/value records linked by
+the event's Unix timestamp.
 
 For example:
 
@@ -64,15 +65,21 @@ attribute-oriented rather than committing to a fixed event schema.
 
 ## Time helpers
 
-`event_tools.py` contains helpers for:
+`event/event_tools.py` contains helpers for:
 
 - parsing an `HH:MM` clock time
 - attaching a timezone
 - converting datetimes to Unix timestamps
 
-## CLI
+## Usage
 
-An event can be logged from the repository root with:
+Log the built-in demo event:
+
+```bash
+make run-demo
+```
+
+Equivalent command:
 
 ```bash
 python3 -m event.log_event run 30
@@ -81,7 +88,13 @@ python3 -m event.log_event run 30
 An optional clock time can also be supplied:
 
 ```bash
-python3 -m event.log_event study 12 --clock 14:30
+python3 -m event.log_event study 45 --clock 07:30
+```
+
+The small historical demo script can also be run with:
+
+```bash
+make demo
 ```
 
 Logs are written to daily JSONL files under `logs_attr/`.
@@ -130,6 +143,9 @@ The restoration only:
 - aligned the CLI with the final `EventFactory` API
 - allowed fractional event amounts
 - corrected stale package and logger references
+- moved the README to the repository root
+- renamed the manual `test_attr_log.py` script to `demo.py`
+- removed the unnecessary empty root `__init__.py`
 - added a small Makefile for repeatable verification
 - documented the implemented behavior without completing unfinished ideas
 
