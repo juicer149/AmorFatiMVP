@@ -2,13 +2,9 @@
 __pycache__/
 *.py[cod]
 
-#Attributiv loggning
+# Attributive logs
 logs_attr/
 
-# Tillfälliga testscript
-activity/test_attr_log.py
-
-# OS-filer
+# OS files
 .DS_Store
 Thumbs.db
-

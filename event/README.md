@@ -1,135 +1,149 @@
-````markdown name=README.md
-# `event/` – The Foundation of Event Logging
+# `event/` — The Foundation of Event Logging
 
-This package forms the semantic core of the Amor Fati system. Here, the most fundamental building blocks of a person's lived log are defined, created, and manipulated.
+The `event` package is the semantic core of the third Amor Fati experiment.
 
-**Note:** The folder was previously named `activity/` but is now renamed to `event/` to better reflect its role as a general log of all types of events, not just activities.
+It represents a shift from activity-specific tracking toward a more general
+event model: first record what happened, then let higher layers interpret it.
 
-## Purpose
+The package was previously named `activity/` and was renamed to `event/` during
+the final refactor.
 
-To distinguish **what happens** from **how it is interpreted**.
+## Core model
 
-Or in Aristotelian terms:
-- `Energeia` – what is (action)
-- `Symbebēkos` – what follows (attribute, circumstance)
+`Event` is a minimal immutable record containing:
 
----
+- `name`
+- `amount`
+- `unix_time`
 
-## Overview
+`EventMeta` wraps an `Event` with configuration and optional contextual
+metadata:
 
-```text
-event/
-├── event.py                # Defines Event and EventMeta
-├── event_factory.py        # Builds instances from YAML configuration
-├── event_tools.py          # Helpers for validation, transformation, etc.
-├── jsonl_logger_attributive.py # Attributive JSONL logging (attribute-based)
-├── test_attr_log.py        # CLI interface for testing attribute-logger
-├── configs/
-│   ├── meditate.yaml       # Example event: meditation
-│   └── run.yaml            # Example event: running
-```
+- `unit`
+- `value`
+- `calc`
+- `meta`
+- a snapshot of the YAML configuration
 
----
+Both are immutable dataclasses using `frozen=True` and `slots=True`.
 
-## `event.py`
+## Event factory
 
-Defines two central data classes:
+`EventFactory` builds an `EventMeta` from a small amount of user input and a
+YAML configuration stored in `configs/`.
 
-* `Event` – an objective, unembellished log: name, amount, unix timestamp.
-* `EventMeta` – a contextualized `Event` enriched from YAML (unit, value, calc, meta fields).
-
-All semantics are moved out of the core – this is a **truthful** logging layer, free of interpretation.
-
----
-
-## `event_factory.py`
-
-Creates `EventMeta` from YAML configurations in `configs/`.
-
-* Each YAML file holds an event's *unit*, *value*, *calc*, and optionally which `meta` fields to prompt.
-* Example:
-
-```yaml
-# configs/run.yaml
-unit: time
-value: 1.0
-calc: linear
-meta:
-  intensity:
-    prompt: "How intense was your run?"
-    weight: 1.2
-  weather:
-    prompt: "What was the weather?"
-    weight: 0.1
-  streak:
-    prompt: "Current streak?"
-    weight: 0.4
-```
-
-Weights and prompts are used for flexible context; all calculation logic is centralized elsewhere (e.g., in `ScoreCalculator`). Metadata is recorded without hardcoded interpretation.
-
----
-
-## `jsonl_logger_attributive.py`
-
-Provides **attributive logging** mode:
-
-- Each attribute is logged on its own line, linked by a shared event id:
-   ```json
-   { "id": 1754229600.0, "key": "name", "value": "run" }
-   { "id": 1754229600.0, "key": "unit", "value": "time" }
-   { "id": 1754229600.0, "key": "intensity", "value": 1.2 }
-   ```
-
-This enables log parsing as a *linked list* of atomic facts, decoupling structure from semantics. Ideal for machine learning or time-series pipelines.
-
-Use `test_attr_log.py` to test this logic manually.
-
----
-
-## `event_tools.py`
-
-Provides tools for:
-
-* YAML validation
-* transformation helpers
-* future API integrations (e.g., weather, emotion recognition)
-
----
-
-## `configs/`
-
-Each `.yaml` represents an event:
-
-* `run.yaml` → `"run"` event
-* `meditate.yaml` → `"meditate"` event
-
-This separation allows semantic expansion without touching code.
-
----
-
-## Philosophical Foundation
-
-This layer is epistemologically minimalist:
-
-> "That something happened" is not the same as understanding why.
-> `event/` only concerns itself with **what occurred**.
-
-Interpretation is layered above (`economy`, `xp`, `praxis`...).
-
----
-
-## Usage
+Example:
 
 ```python
 from event.event_factory import EventFactory
 
-event_meta = EventFactory(name="run", amount=30).build()
+event = EventFactory(name="run", amount=30).build()
 ```
 
----
+The corresponding YAML file supplies configuration such as the event unit,
+base value, calculation mode and optional metadata specification.
 
-## Forward
+## Attributive JSONL logging
 
-This is the layer upon which future languages may be built – NLP, statistics, self-reflection. But here, in `event/`, reality speaks first.
-````
+`jsonl_logger.py` stores an event as atomic key/value records linked by the
+event's Unix timestamp.
+
+For example:
+
+```json
+{"id": 1754229600.0, "key": "name", "value": "run"}
+{"id": 1754229600.0, "key": "amount", "value": 30}
+{"id": 1754229600.0, "key": "unix_time", "value": 1754229600.0}
+```
+
+Optional values from `EventMeta.meta` are written as additional records using
+the same event id.
+
+This was an experiment in keeping the stored representation simple and
+attribute-oriented rather than committing to a fixed event schema.
+
+## Time helpers
+
+`event_tools.py` contains helpers for:
+
+- parsing an `HH:MM` clock time
+- attaching a timezone
+- converting datetimes to Unix timestamps
+
+## CLI
+
+An event can be logged from the repository root with:
+
+```bash
+python3 -m event.log_event run 30
+```
+
+An optional clock time can also be supplied:
+
+```bash
+python3 -m event.log_event study 12 --clock 14:30
+```
+
+Logs are written to daily JSONL files under `logs_attr/`.
+
+## Configuration
+
+The repository contains example YAML definitions for:
+
+- `run`
+- `study`
+- `meditate`
+
+The configurations reflect the experimental state of the project. Some were
+left incomplete while the event model was being developed.
+
+## Philosophical foundation
+
+The central idea was to distinguish what happened from how it should later be
+interpreted.
+
+In the terminology used during development:
+
+- `Energeia` — what is or what occurred
+- `Symbebēkos` — attributes or circumstances that follow
+
+The event layer therefore attempts to record observations first and defer
+scoring, interpretation and higher-level meaning to later layers.
+
+## Verification
+
+Run:
+
+```bash
+make check
+```
+
+This compiles the project and runs the original doctest-style verification.
+
+## Historical restoration
+
+This repository has been preserved close to its original 2025 state.
+
+The restoration only:
+
+- repaired the CLI after the final `activity` → `event` refactor
+- aligned the CLI with the final `EventFactory` API
+- allowed fractional event amounts
+- corrected stale package and logger references
+- added a small Makefile for repeatable verification
+- documented the implemented behavior without completing unfinished ideas
+
+The experimental data model and YAML configurations were otherwise left
+intact.
+
+## Project lineage
+
+1. `RUTINHANTERARE` — first routine tracker and scoring CLI, 2024
+2. `amor_fati` — YAML-driven activity model and catalog experiment, 2025
+3. `AmorFatiMVP` — immutable event model and attributive JSONL logging, 2025
+
+A later Django training-log project continued exploring related ideas.
+
+## Status
+
+Historical project preserved as the third stage of the Amor Fati project line.

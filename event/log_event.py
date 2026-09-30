@@ -1,8 +1,9 @@
 # log_event.py
 
 import argparse
+
 from .event_factory import EventFactory
-from .jsonl_logger import log_event  # Attribute-based logger
+from .jsonl_logger import log_event
 
 
 def parse_args():
@@ -12,13 +13,16 @@ def parse_args():
     Returns
     -------
     argparse.Namespace
-        Parsed command-line arguments including name, amount, clock, and unit.
+        Parsed command-line arguments including name, amount, and clock.
     """
     parser = argparse.ArgumentParser(description="Log an event via CLI.")
     parser.add_argument("name", help="Event name, e.g., 'run'")
-    parser.add_argument("amount", type=int, help="Amount of event")
-    parser.add_argument("--clock", help="Clock time in HH:MM format", default=None)
-    parser.add_argument("--unit", help="Override unit (disables YAML config)")
+    parser.add_argument("amount", type=float, help="Amount of event")
+    parser.add_argument(
+        "--clock",
+        help="Clock time in HH:MM format",
+        default=None,
+    )
     return parser.parse_args()
 
 
@@ -26,13 +30,12 @@ def main():
     """
     Entry point for CLI event logging.
 
-    Builds the event via EventFactory and logs it in attributive format
-    using jsonl_logger_attributive.
+    Builds the event via EventFactory and logs it in attributive format.
 
     Design rationale:
     - Delegates event construction to the factory for consistency.
-    - Uses an attribute-centric logging model for more composable, pattern-friendly logs.
-    - Does not assume anything about the higher system (economy, xp, etc).
+    - Uses an attribute-centric logging model for composable logs.
+    - Does not assume anything about higher-level interpretation.
     """
     args = parse_args()
 
@@ -40,8 +43,6 @@ def main():
         name=args.name,
         amount=args.amount,
         clock=args.clock,
-        unit=args.unit,
-        use_yaml=(args.unit is None),
     )
 
     event = factory.build()
@@ -49,6 +50,6 @@ def main():
 
     print(f"Logged (attributive): {event}")
 
+
 if __name__ == "__main__":
     main()
-
